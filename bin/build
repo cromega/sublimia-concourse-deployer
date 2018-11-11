@@ -1,0 +1,4 @@
+#!/bin/bash -e
+
+docker build -t cromega/sublimia-concourse-deploy .
+docker push cromega/sublimia-concourse-deploy

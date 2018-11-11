@@ -1,0 +1,30 @@
+#!/bin/bash -e
+
+exec 3>&1
+exec 1>&2
+
+build_path=$1
+input=$(cat -)
+
+source=$(echo $input | jq .source)
+params=$(echo $input | jq .params)
+
+host=$(echo $source | jq -r .host)
+port=$(echo $source | jq -r .port)
+
+image=$(echo $params | jq -r .image)
+service=$(echo $params | jq -r .service)
+opts_file=$(echo $params | jq -r .service_opts)
+
+echo "$source" | jq -r .private_key > /tmp/private_key
+chmod 600 /tmp/private_key
+
+raw_opts=$(cat $build_path/$opts_file)
+opts=$(echo $raw_opts | tr "\n" " ")
+
+ssh="ssh -o StrictHostKeyChecking=no -p $port -i /tmp/private_key ubuntu@$host"
+
+$ssh docker service rm $service || true
+$ssh docker service create --with-registry-auth --name $service $opts $image
+
+echo "{\"version\":{\"ref\":\"$(date +%s)\"}}" >&3
